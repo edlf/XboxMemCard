@@ -25,6 +25,7 @@
 // Modified by Cesanta Software
 
 #include "tusb.h"
+#include "flash_storage.h"
 
 // Some MCU doesn't have enough 8KB SRAM to store the whole disk
 
@@ -39,7 +40,7 @@ enum
 "<head><meta http-equiv=\"Refresh\" content=\"0;url=http://www.xbox-scene.info\"></head><body></body>"
 
 // readonly
-const uint8_t msc_disk0[DISK_BLOCK_NUM][DISK_BLOCK_SIZE] =
+uint8_t msc_disk0[DISK_BLOCK_NUM][DISK_BLOCK_SIZE] =
 {
   //------------- Block0: Boot Sector -------------//
   // byte_per_sector    = DISK_BLOCK_SIZE; fat12_sector_num_16  = DISK_BLOCK_NUM;
@@ -122,7 +123,7 @@ void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16
 {
   (void) lun; // use same ID for both LUNs
 
-  const char vid[] = "TinyUSB";
+  const char vid[] = "TR";
   const char pid[] = "Mass Storage";
   const char rev[] = "1.0";
 
@@ -145,7 +146,9 @@ void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count, uint16_t* block_siz
 {
   (void) lun;
 
-  *block_count = DISK_BLOCK_NUM;
+  const uint32_t STORAGE_BLOCKS = flash_get_capcity() >> XMU_SECTOR_SHIFT;
+
+  *block_count = STORAGE_BLOCKS;
   *block_size  = DISK_BLOCK_SIZE;
 }
 
@@ -175,14 +178,25 @@ bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, boo
 // Copy disk's data to buffer (up to bufsize) and return number of copied bytes.
 int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buffer, uint32_t bufsize)
 {
+  const uint32_t STORAGE_BLOCKS = flash_get_capcity() >> XMU_SECTOR_SHIFT;
+
   // out of ramdisk
-  if ( lba >= DISK_BLOCK_NUM ) return -1;
+  if ( lba >= STORAGE_BLOCKS ) return -1;
 
   (void) lun;
-  uint8_t const* addr = msc_disk0[lba] + offset;
-  memcpy(buffer, addr, bufsize);
 
-  return (int32_t) bufsize;
+  uint32_t bytes_read = 0;
+  uint8_t* buffer_pos = buffer + offset;
+  while (bufsize > 0)
+  {
+    uint32_t byte_to_read = MIN(XMU_SECTOR_SIZE, bufsize);
+    flash_read_sector(lba, buffer_pos, byte_to_read);
+    buffer_pos += XMU_SECTOR_SIZE;
+    bufsize -= byte_to_read;
+    bytes_read += byte_to_read;
+    lba++;
+  }
+  return bytes_read;
 }
 
 bool tud_msc_is_writable_cb (uint8_t lun)
@@ -190,24 +204,31 @@ bool tud_msc_is_writable_cb (uint8_t lun)
   (void) lun;
 
 // readonly
-  return false;
+  return true;
 }
 
 // Callback invoked when received WRITE10 command.
 // Process data in buffer to disk's storage and return number of written bytes
 int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize)
 {
+  const uint32_t STORAGE_BLOCKS = flash_get_capcity() >> XMU_SECTOR_SHIFT;
+
   // out of ramdisk
-  if ( lba >= DISK_BLOCK_NUM ) return -1;
+  if ( lba >= STORAGE_BLOCKS ) return -1;
 
-#if 0
-  uint8_t* addr = (lun ? msc_disk1[lba] : msc_disk0[lba])  + offset;
-  memcpy(addr, buffer, bufsize);
-#else // readonly
-  (void) lun; (void) lba; (void) offset; (void) buffer;
-#endif
+  uint32_t bytes_writen = 0;
+  uint8_t* buffer_pos = buffer + offset;
+  while (bufsize > 0)
+  {
+    uint32_t byte_to_write = MIN(XMU_SECTOR_SIZE, bufsize);
+    flash_write_sector(lba, buffer_pos, byte_to_write);
+    buffer_pos += XMU_SECTOR_SIZE;
+    bufsize -= byte_to_write;
+    bytes_writen += byte_to_write;
+    lba++;
+  }
 
-  return (int32_t) bufsize;
+  return bytes_writen;
 }
 
 // Callback invoked when received an SCSI command not in built-in list below
@@ -217,36 +238,38 @@ int32_t tud_msc_scsi_cb (uint8_t lun, uint8_t const scsi_cmd[16], void* buffer, 
 {
   // read10 & write10 has their own callback and MUST not be handled here
 
-  void const* response = NULL;
-  int32_t resplen = 0;
+  // void const* response = NULL;
+  // int32_t resplen = 0;
 
-  // most scsi handled is input
-  bool in_xfer = true;
+  // // most scsi handled is input
+  // bool in_xfer = true;
 
-  switch (scsi_cmd[0])
-  {
-    default:
-      // Set Sense = Invalid Command Operation
-      tud_msc_set_sense(lun, SCSI_SENSE_ILLEGAL_REQUEST, 0x20, 0x00);
+  // switch (scsi_cmd[0])
+  // {
+  //   default:
+  //     // Set Sense = Invalid Command Operation
+  //     tud_msc_set_sense(lun, SCSI_SENSE_ILLEGAL_REQUEST, 0x20, 0x00);
 
-      // negative means error -> tinyusb could stall and/or response with failed status
-      resplen = -1;
-    break;
-  }
+  //     // negative means error -> tinyusb could stall and/or response with failed status
+  //     resplen = -1;
+  //   break;
+  // }
 
-  // return resplen must not larger than bufsize
-  if ( resplen > bufsize ) resplen = bufsize;
+  // // return resplen must not larger than bufsize
+  // if ( resplen > bufsize ) resplen = bufsize;
 
-  if ( response && (resplen > 0) )
-  {
-    if(in_xfer)
-    {
-      memcpy(buffer, response, (size_t) resplen);
-    }else
-    {
-      // SCSI output
-    }
-  }
+  // if ( response && (resplen > 0) )
+  // {
+  //   if(in_xfer)
+  //   {
+  //     memcpy(buffer, response, (size_t) resplen);
+  //   }else
+  //   {
+  //     // SCSI output
+  //   }
+  // }
 
-  return resplen;
+  // return resplen;
+
+  return 0;
 }

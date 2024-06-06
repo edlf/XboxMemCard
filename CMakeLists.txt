@@ -34,6 +34,8 @@ endif()
 
 project(XboxMemCard C CXX ASM)
 
+add_compile_definitions(PICO_FLASH_SIZE_BYTES=16777216)
+
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
@@ -46,6 +48,7 @@ add_executable(XboxMemCard)
 target_sources(XboxMemCard PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/main.c
         ${CMAKE_CURRENT_LIST_DIR}/msc_disk.c
+        ${CMAKE_CURRENT_LIST_DIR}/flash_storage.c
         ${CMAKE_CURRENT_LIST_DIR}/usb_descriptors.c
         )
 
@@ -59,6 +62,9 @@ target_link_libraries(XboxMemCard PUBLIC pico_stdlib pico_unique_id tinyusb_devi
 
 # Uncomment this line to enable fix for Errata RP2040-E5 (the fix requires use of GPIO 15)
 #target_compile_definitions(XboxMemCard PUBLIC PICO_RP2040_USB_DEVICE_ENUMERATION_FIX=1)
+
+pico_enable_stdio_usb(XboxMemCard 0)
+pico_enable_stdio_uart(XboxMemCard 1)
 
 pico_add_extra_outputs(XboxMemCard)
 

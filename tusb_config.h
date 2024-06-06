@@ -127,11 +127,11 @@
 #else
 
 #ifndef CFG_TUD_ENDPOINT0_SIZE
-#define CFG_TUD_ENDPOINT0_SIZE    64
+#define CFG_TUD_ENDPOINT0_SIZE    32
 #endif
 
 //------------- CLASS -------------//
-#define CFG_TUD_CDC              1
+#define CFG_TUD_CDC              0
 #define CFG_TUD_MSC              1
 #define CFG_TUD_HID              0
 #define CFG_TUD_MIDI             0
