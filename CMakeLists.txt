@@ -41,7 +41,7 @@ pico_sdk_init()
 
 add_executable(XboxMemCard)
 
-add_subdirectory(../FatFs_SPI build)
+add_subdirectory(FatFs_SPI build)
 
 pico_set_program_name(XboxMemCard "XboxMemCard")
 pico_set_program_version(XboxMemCard "0.1")
