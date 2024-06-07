@@ -43,29 +43,31 @@ pico_sdk_init()
 
 cmake_minimum_required(VERSION 3.13)
 
-add_executable(XboxMemCard)
-
-target_sources(XboxMemCard PUBLIC
-        ${CMAKE_CURRENT_LIST_DIR}/main.c
-        ${CMAKE_CURRENT_LIST_DIR}/msc_disk.c
-        ${CMAKE_CURRENT_LIST_DIR}/flash_storage.c
-        ${CMAKE_CURRENT_LIST_DIR}/usb_descriptors.c
-        )
-
-# Make sure TinyUSB can find tusb_config.h
-target_include_directories(XboxMemCard PUBLIC
-        ${CMAKE_CURRENT_LIST_DIR})
-
-# In addition to pico_stdlib required for common PicoSDK functionality, add dependency on tinyusb_device
-# for TinyUSB device support and tinyusb_board for the additional board support library used by the example
-target_link_libraries(XboxMemCard PUBLIC pico_stdlib pico_unique_id tinyusb_device tinyusb_board)
-
-# Uncomment this line to enable fix for Errata RP2040-E5 (the fix requires use of GPIO 15)
-#target_compile_definitions(XboxMemCard PUBLIC PICO_RP2040_USB_DEVICE_ENUMERATION_FIX=1)
-
-pico_enable_stdio_usb(XboxMemCard 0)
-pico_enable_stdio_uart(XboxMemCard 1)
-
-pico_add_extra_outputs(XboxMemCard)
-
-# add url via pico_set_program_url
+add_library(FatFs_SPI INTERFACE)
+target_sources(FatFs_SPI INTERFACE
+    ${CMAKE_CURRENT_LIST_DIR}/ff15/source/ffsystem.c
+    ${CMAKE_CURRENT_LIST_DIR}/ff15/source/ffunicode.c
+    ${CMAKE_CURRENT_LIST_DIR}/ff15/source/ff.c
+    ${CMAKE_CURRENT_LIST_DIR}/sd_driver/sd_spi.c
+    ${CMAKE_CURRENT_LIST_DIR}/sd_driver/demo_logging.c
+#    ${CMAKE_CURRENT_LIST_DIR}/sd_driver/hw_config.c
+    ${CMAKE_CURRENT_LIST_DIR}/sd_driver/spi.c
+    ${CMAKE_CURRENT_LIST_DIR}/sd_driver/sd_card.c
+    ${CMAKE_CURRENT_LIST_DIR}/sd_driver/crc.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/glue.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/f_util.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/ff_stdio.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/my_debug.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/rtc.c
+)
+target_include_directories(FatFs_SPI INTERFACE
+    ff15/source
+    sd_driver
+    'include'
+)
+target_link_libraries(FatFs_SPI INTERFACE
+        hardware_spi
+        hardware_dma
+        hardware_rtc
+        pico_stdlib
+)

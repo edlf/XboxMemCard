@@ -29,18 +29,12 @@
 
 // Some MCU doesn't have enough 8KB SRAM to store the whole disk
 
-enum
-{
-  DISK_BLOCK_NUM  = 16, // 8KB is the smallest size that Windows allows to mount
-  DISK_BLOCK_SIZE = 512
-};
-
 
 #define INDEX_CONTENTS \
 "<head><meta http-equiv=\"Refresh\" content=\"0;url=http://www.xbox-scene.info\"></head><body></body>"
 
 // readonly
-uint8_t msc_disk0[DISK_BLOCK_NUM][DISK_BLOCK_SIZE] =
+uint8_t msc_disk0[16][XMU_SECTOR_SIZE] =
 {
   //------------- Block0: Boot Sector -------------//
   // byte_per_sector    = DISK_BLOCK_SIZE; fat12_sector_num_16  = DISK_BLOCK_NUM;
@@ -149,7 +143,7 @@ void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count, uint16_t* block_siz
   const uint32_t STORAGE_BLOCKS = flash_get_capcity() >> XMU_SECTOR_SHIFT;
 
   *block_count = STORAGE_BLOCKS;
-  *block_size  = DISK_BLOCK_SIZE;
+  *block_size  = XMU_SECTOR_SIZE;
 }
 
 // Invoked when received Start Stop Unit command
@@ -179,6 +173,8 @@ bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, boo
 int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buffer, uint32_t bufsize)
 {
   const uint32_t STORAGE_BLOCKS = flash_get_capcity() >> XMU_SECTOR_SHIFT;
+
+  printf("BuffSize read: %i\n", bufsize);
 
   // out of ramdisk
   if ( lba >= STORAGE_BLOCKS ) return -1;
@@ -211,6 +207,8 @@ bool tud_msc_is_writable_cb (uint8_t lun)
 // Process data in buffer to disk's storage and return number of written bytes
 int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize)
 {
+    printf("BuffSize write: %i\n", bufsize);
+
   const uint32_t STORAGE_BLOCKS = flash_get_capcity() >> XMU_SECTOR_SHIFT;
 
   // out of ramdisk
