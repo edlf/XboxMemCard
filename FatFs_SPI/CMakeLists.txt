@@ -32,7 +32,7 @@ if (PICO_SDK_VERSION_STRING VERSION_LESS "1.4.0")
   message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.4.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
 endif()
 
-project(XboxMemCard C CXX ASM)
+project(FatFs_SPI C CXX ASM)
 
 add_compile_definitions(PICO_FLASH_SIZE_BYTES=16777216)
 
@@ -44,6 +44,7 @@ pico_sdk_init()
 cmake_minimum_required(VERSION 3.13)
 
 add_library(FatFs_SPI INTERFACE)
+
 target_sources(FatFs_SPI INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/ff15/source/ffsystem.c
     ${CMAKE_CURRENT_LIST_DIR}/ff15/source/ffunicode.c
@@ -63,7 +64,6 @@ target_sources(FatFs_SPI INTERFACE
 target_include_directories(FatFs_SPI INTERFACE
     ff15/source
     sd_driver
-    'include'
 )
 target_link_libraries(FatFs_SPI INTERFACE
         hardware_spi
