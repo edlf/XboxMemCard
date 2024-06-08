@@ -38,10 +38,10 @@ socket, which SPI it is driven by, and how it is wired.
 // selects.
 static spi_t spis[] = {  // One for each SPI.
     {
-        .hw_inst = spi0,  // SPI component
-        .miso_gpio = 4, // GPIO number (not pin number)
-        .mosi_gpio = 7,
-        .sck_gpio = 6,
+        .hw_inst = spi1,  // SPI component
+        .miso_gpio = 12, // GPIO number (not pin number)
+        .mosi_gpio = 15,
+        .sck_gpio = 14,
         .baud_rate = 12500 * 1000,  
         //.baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. 
     }
