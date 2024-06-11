@@ -16,9 +16,9 @@ specific language governing permissions and limitations under the License.
 #include "ff.h"
 #include "sd_card.h"    
 
+#define SPI_SCK_PIN 2
 #define SPI_MISO_PIN 4
-#define SPI_MOSI_PIN 7
-#define SPI_SCK_PIN 6
+#define SPI_MOSI_PIN 3
 #define SPI_SS_PIN 5
 
 #ifdef __cplusplus
