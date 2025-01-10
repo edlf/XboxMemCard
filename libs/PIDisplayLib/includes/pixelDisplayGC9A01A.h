@@ -1,24 +1,17 @@
 #pragma once
 
-#include "displayDriver.h"
-#include "displayBuffer.h"
+#include "pixelDisplayDriver.h"
+#include "pixelDisplayBuffer.h"
 #include "fonts.h"
 #include "hardware/spi.h"
-#include "hardware/i2c.h"
 #include "hardware/structs/spi.h"
 
-// Config
-#define DISPLAY_SSD1309_SPI spi0
-#define DISPLAY_SSD1309_I2C i2c1
-#define DISPLAY_SSD1309_BAUDRATE (1 * 1024 * 1024)
-#define DISPLAY_SSD1309_WIDTH 128
-#define DISPLAY_SSD1309_HEIGHT 64
-#define DISPLAY_SSD1309_BITS_PER_PIXEL 1
-
-class displaySSD1309 : displayDriver
+class pixelDisplayGC9A01A : pixelDisplayDriver
 {
 public:
-    displaySSD1309(displayMode mode);
+    pixelDisplayGC9A01A(uint16_t width, uint16_t height, uint16_t xShift, uint16_t yShift, uint8_t bitsPerPixel);
+
+    void initSpi(spi_inst_t* spi, uint32_t baudRate, uint8_t txPin, uint8_t sckPin, uint8_t csnPin, uint8_t rstPin, uint8_t dcPin, uint8_t backlightPin);
 
     void drawChar(uint32_t colorR8G8B8, FontDef font, uint16_t x, uint16_t y, char character);
     void drawString(uint32_t colorR8G8B8, FontDef font, uint16_t x, uint16_t y, const char *message);
@@ -39,4 +32,6 @@ public:
     void contrast(uint8_t value);
     void invert(bool value);
     void rotate(uint16_t degrees);
+private:
+    void init();
 };

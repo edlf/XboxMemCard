@@ -1,4 +1,4 @@
-#include "displayILI9341.h"
+#include "pixelDisplayILI9341.h"
 #include "color.h"
 #include "fonts.h"
 
@@ -72,18 +72,182 @@
 #define ILI9341_MEMORY_ADDRESS_DATA_CONTROL_BGR 0x00
 #define ILI9341_MEMORY_ADDRESS_DATA_CONTROL_RGB 0x08
 
-displayILI9341::displayILI9341()
+pixelDisplayILI9341::pixelDisplayILI9341(uint16_t width, uint16_t height, uint16_t xShift, uint16_t yShift, uint8_t bitsPerPixel)
 {
     initDisplayBuffer(
-        DISPLAY_ILI9341_WIDTH, 
-        DISPLAY_ILI9341_HEIGHT, 
-        DISPLAY_ILI9341_X_SHIFT,
-        DISPLAY_ILI9341_Y_SHIFT,
-        DISPLAY_ILI9341_BITS_PER_PIXEL
+        width, 
+        height, 
+        xShift,
+        yShift,
+        bitsPerPixel
     );
+}
 
-    initSpi(DISPLAY_ILI9341_SPI, DISPLAY_ILI9341_BAUDRATE);
+void pixelDisplayILI9341::initSpi(spi_inst_t* spi, uint32_t baudRate, uint8_t txPin, uint8_t sckPin, uint8_t csnPin, uint8_t rstPin, uint8_t dcPin, uint8_t backlightPin) 
+{
+	pixelDisplayDriver::initSpi(spi, baudRate, txPin, sckPin, csnPin, rstPin, dcPin, backlightPin);
+    init();
+}
 
+void pixelDisplayILI9341::drawChar(uint32_t colorR8G8B8, FontDef font, uint16_t x, uint16_t y, char character)
+{
+    pixelDisplayDriver::drawChar(colorR8G8B8, font, x, y, character);
+}
+
+void pixelDisplayILI9341::drawString(uint32_t colorR8G8B8, FontDef font, uint16_t x, uint16_t y, const char *message)
+{
+    pixelDisplayDriver::drawString(colorR8G8B8, font, x, y, message);
+}
+
+void pixelDisplayILI9341::drawLine(uint32_t colorR8G8B8, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
+{
+    pixelDisplayDriver::drawLine(colorR8G8B8, x0, y0, x1, y1);
+}
+
+void pixelDisplayILI9341::drawRectangle(uint32_t colorR8G8B8, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+{
+    pixelDisplayDriver::drawRectangle(colorR8G8B8, x, y, width, height);
+}
+
+void pixelDisplayILI9341::drawTriangle(uint32_t colorR8G8B8, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3)
+{
+    pixelDisplayDriver::drawTriangle(colorR8G8B8, x1, y1, x2, y2, x3, y3);
+}
+
+void pixelDisplayILI9341::drawCircle(uint32_t colorR8G8B8, int16_t x, int16_t y, int16_t radius)
+{
+    pixelDisplayDriver::drawCircle(colorR8G8B8, x, y, radius);
+}
+
+void pixelDisplayILI9341::drawFilledRectangle(uint32_t colorR8G8B8, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+{
+    pixelDisplayDriver::drawFilledRectangle(colorR8G8B8, x, y, width, height);
+}
+
+void pixelDisplayILI9341::drawFilledTriangle(uint32_t colorR8G8B8, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3)
+{
+    pixelDisplayDriver::drawFilledTriangle(colorR8G8B8, x1, y1, x2, y2, x3, y3);
+}
+
+void pixelDisplayILI9341::drawFilledCircle(uint32_t colorR8G8B8, int16_t x, int16_t y, int16_t radius)
+{
+    pixelDisplayDriver::drawFilledCircle(colorR8G8B8, x, y, radius);
+}
+
+void pixelDisplayILI9341::drawPixel(uint32_t colorR8G8B8, uint16_t x, uint16_t y)
+{
+    if (x >= mDisplayBuffer->getWidth() || y >= mDisplayBuffer->getHeight())
+    {
+        return;
+    }
+
+    uint16_t r5g6b5 = color::convertR8G8B8toR5G6B5(colorR8G8B8);
+    uint8_t* buffer = getDisplayBuffer()->getBuffer();
+    uint32_t pixelOffset = (y * (mDisplayBuffer->getWidth() << 1)) + (x << 1);
+    buffer[pixelOffset] = static_cast<uint8_t>((r5g6b5 & 0xff00) >> 8);
+    buffer[pixelOffset + 1] = static_cast<uint8_t>(r5g6b5 & 0xff);
+}
+
+void pixelDisplayILI9341::fill(uint32_t colorR8G8B8)
+{
+    uint16_t r5g6b5 = color::convertR8G8B8toR5G6B5(colorR8G8B8);
+
+    uint32_t rowStride = mDisplayBuffer->getWidth() << 1;
+    uint8_t* rowData = (uint8_t*)malloc(rowStride);
+
+    uint32_t offset = 0;
+    for (uint32_t i = 0; i < mDisplayBuffer->getWidth(); i++)
+    {
+        rowData[offset] = static_cast<uint8_t>(r5g6b5 >> 8);
+        rowData[offset + 1] = static_cast<uint8_t>(r5g6b5 & 0xff);
+        offset += 2;
+    }
+
+    uint8_t* buffer = getDisplayBuffer()->getBuffer();
+    for (uint32_t i = 0; i < mDisplayBuffer->getHeight(); i++) 
+    {
+        memcpy(buffer, rowData, rowStride);
+        buffer += rowStride;
+    }
+}
+
+void pixelDisplayILI9341::drawDisplay()
+{
+	uint16_t xStart = 0 + mDisplayBuffer->getXShift();
+    uint16_t xEnd = mDisplayBuffer->getWidth() + mDisplayBuffer->getXShift() - 1;
+	uint16_t yStart = 0 + mDisplayBuffer->getYShift();
+    uint16_t yEnd = mDisplayBuffer->getHeight() + mDisplayBuffer->getYShift() - 1;
+
+	writeCommandByte(ILI9341_COLUMN_ADDRESS_SET);
+    uint8_t columnData[] = {(uint8_t)(xStart >> 8), (uint8_t)(xStart & 0xFF), (uint8_t)(xEnd >> 8), (uint8_t)(xEnd & 0xFF)};
+    writeData(columnData, sizeof(columnData));
+
+	writeCommandByte(ILI9341_PAGE_ADDRESS_SET);
+    uint8_t rowData[] = {(uint8_t)(yStart >> 8), (uint8_t)(yStart & 0xFF), (uint8_t)(yEnd >> 8), (uint8_t)(yEnd & 0xFF)};
+    writeData(rowData, sizeof(rowData));
+
+	writeCommandByte(ILI9341_MEMORY_WRITE);
+    writeData(getDisplayBuffer()->getBuffer(), getDisplayBuffer()->getBufferSize());
+}
+
+void pixelDisplayILI9341::brightness(uint8_t value)
+{
+    // Does not seem to work
+    // writeCommandByte(ILI9341_WRITE_DISPLAY_BRIGHTNESS);
+    // writeDataByte(value);
+}
+
+void pixelDisplayILI9341::contrast(uint8_t value)
+{
+    // NA 
+}
+
+void pixelDisplayILI9341::invert(bool value)
+{
+    writeCommandByte(value ? ILI9341_DISPLAY_INVERSION_OFF : ILI9341_DISPLAY_INVERSION_ON);
+}
+
+void pixelDisplayILI9341::rotate(uint16_t degrees)
+{
+    mDisplayBuffer->setRotation(degrees);
+
+    if (degrees == 0)
+    {
+        writeCommandByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL);	
+        writeDataByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MY |  
+            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_RGB);
+    }
+    else if (degrees == 90)
+    {
+        writeCommandByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL);	
+        writeDataByte((uint8_t)(
+            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MY | 
+            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MV | 
+            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MX | 
+            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_RGB)
+        );
+    }
+    else if (degrees == 180)
+    {
+        writeCommandByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL);	
+	    writeDataByte((uint8_t)(
+            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MX | 
+            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_RGB)
+        );
+    }
+    else if (degrees == 270)
+    {
+        writeCommandByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL);	
+        writeDataByte((uint8_t)(
+            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MV | 
+            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_RGB));
+    }
+}
+
+// Private
+
+void pixelDisplayILI9341::init()
+{
     writeCommandByte(ILI9341_SOFTWARE_RESET);
     sleep_ms(100);
 
@@ -137,159 +301,4 @@ displayILI9341::displayILI9341()
     rotate(0);
 
     drawDisplay();
-}
-
-void displayILI9341::drawChar(uint32_t colorR8G8B8, FontDef font, uint16_t x, uint16_t y, char character)
-{
-    displayDriver::drawChar(colorR8G8B8, font, x, y, character);
-}
-
-void displayILI9341::drawString(uint32_t colorR8G8B8, FontDef font, uint16_t x, uint16_t y, const char *message)
-{
-    displayDriver::drawString(colorR8G8B8, font, x, y, message);
-}
-
-void displayILI9341::drawLine(uint32_t colorR8G8B8, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
-{
-    displayDriver::drawLine(colorR8G8B8, x0, y0, x1, y1);
-}
-
-void displayILI9341::drawRectangle(uint32_t colorR8G8B8, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
-{
-    displayDriver::drawRectangle(colorR8G8B8, x, y, width, height);
-}
-
-void displayILI9341::drawTriangle(uint32_t colorR8G8B8, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3)
-{
-    displayDriver::drawTriangle(colorR8G8B8, x1, y1, x2, y2, x3, y3);
-}
-
-void displayILI9341::drawCircle(uint32_t colorR8G8B8, int16_t x, int16_t y, int16_t radius)
-{
-    displayDriver::drawCircle(colorR8G8B8, x, y, radius);
-}
-
-void displayILI9341::drawFilledRectangle(uint32_t colorR8G8B8, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
-{
-    displayDriver::drawFilledRectangle(colorR8G8B8, x, y, width, height);
-}
-
-void displayILI9341::drawFilledTriangle(uint32_t colorR8G8B8, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3)
-{
-    displayDriver::drawFilledTriangle(colorR8G8B8, x1, y1, x2, y2, x3, y3);
-}
-
-void displayILI9341::drawFilledCircle(uint32_t colorR8G8B8, int16_t x, int16_t y, int16_t radius)
-{
-    displayDriver::drawFilledCircle(colorR8G8B8, x, y, radius);
-}
-
-void displayILI9341::drawPixel(uint32_t colorR8G8B8, uint16_t x, uint16_t y)
-{
-    if (x >= mDisplayBuffer->getWidth() || y >= mDisplayBuffer->getHeight())
-    {
-        return;
-    }
-
-    uint16_t r5g6b5 = color::convertR8G8B8toR5G6B5(colorR8G8B8);
-    uint8_t* buffer = getDisplayBuffer()->getBuffer();
-    uint32_t pixelOffset = (y * (mDisplayBuffer->getWidth() << 1)) + (x << 1);
-    buffer[pixelOffset] = static_cast<uint8_t>((r5g6b5 & 0xff00) >> 8);
-    buffer[pixelOffset + 1] = static_cast<uint8_t>(r5g6b5 & 0xff);
-}
-
-void displayILI9341::fill(uint32_t colorR8G8B8)
-{
-    uint16_t r5g6b5 = color::convertR8G8B8toR5G6B5(colorR8G8B8);
-
-    uint32_t rowStride = mDisplayBuffer->getWidth() << 1;
-    uint8_t* rowData = (uint8_t*)malloc(rowStride);
-
-    uint32_t offset = 0;
-    for (uint32_t i = 0; i < mDisplayBuffer->getWidth(); i++)
-    {
-        rowData[offset] = static_cast<uint8_t>(r5g6b5 >> 8);
-        rowData[offset + 1] = static_cast<uint8_t>(r5g6b5 & 0xff);
-        offset += 2;
-    }
-
-    uint8_t* buffer = getDisplayBuffer()->getBuffer();
-    for (uint32_t i = 0; i < mDisplayBuffer->getHeight(); i++) 
-    {
-        memcpy(buffer, rowData, rowStride);
-        buffer += rowStride;
-    }
-}
-
-void displayILI9341::drawDisplay()
-{
-	uint16_t xStart = 0 + mDisplayBuffer->getXShift();
-    uint16_t xEnd = mDisplayBuffer->getWidth() + mDisplayBuffer->getXShift() - 1;
-	uint16_t yStart = 0 + mDisplayBuffer->getYShift();
-    uint16_t yEnd = mDisplayBuffer->getHeight() + mDisplayBuffer->getYShift() - 1;
-
-	writeCommandByte(ILI9341_COLUMN_ADDRESS_SET);
-    uint8_t columnData[] = {(uint8_t)(xStart >> 8), (uint8_t)(xStart & 0xFF), (uint8_t)(xEnd >> 8), (uint8_t)(xEnd & 0xFF)};
-    writeData(columnData, sizeof(columnData));
-
-	writeCommandByte(ILI9341_PAGE_ADDRESS_SET);
-    uint8_t rowData[] = {(uint8_t)(yStart >> 8), (uint8_t)(yStart & 0xFF), (uint8_t)(yEnd >> 8), (uint8_t)(yEnd & 0xFF)};
-    writeData(rowData, sizeof(rowData));
-
-	writeCommandByte(ILI9341_MEMORY_WRITE);
-    writeData(getDisplayBuffer()->getBuffer(), getDisplayBuffer()->getBufferSize());
-}
-
-void displayILI9341::brightness(uint8_t value)
-{
-    // Does not seem to work
-    // writeCommandByte(ILI9341_WRITE_DISPLAY_BRIGHTNESS);
-    // writeDataByte(value);
-}
-
-void displayILI9341::contrast(uint8_t value)
-{
-    // NA 
-}
-
-void displayILI9341::invert(bool value)
-{
-    writeCommandByte(value ? ILI9341_DISPLAY_INVERSION_OFF : ILI9341_DISPLAY_INVERSION_ON);
-}
-
-void displayILI9341::rotate(uint16_t degrees)
-{
-    mDisplayBuffer->setRotation(degrees);
-
-    if (degrees == 0)
-    {
-        writeCommandByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL);	
-        writeDataByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MY |  
-            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_RGB);
-    }
-    else if (degrees == 90)
-    {
-        writeCommandByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL);	
-        writeDataByte((uint8_t)(
-            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MY | 
-            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MV | 
-            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MX | 
-            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_RGB)
-        );
-    }
-    else if (degrees == 180)
-    {
-        writeCommandByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL);	
-	    writeDataByte((uint8_t)(
-            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MX | 
-            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_RGB)
-        );
-    }
-    else if (degrees == 270)
-    {
-        writeCommandByte(ILI9341_MEMORY_ADDRESS_DATA_CONTROL);	
-        writeDataByte((uint8_t)(
-            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_MV | 
-            ILI9341_MEMORY_ADDRESS_DATA_CONTROL_RGB));
-    }
 }
