@@ -140,18 +140,18 @@ static uint8_t msc_disk0[DISK_BLOCK_NUM2][DISK_BLOCK_SIZE2] =
   INDEX_CONTENTS2
 };
 
-  if (flash_target_contents[0] != 0xEB)
-  {
-    printf("Init storage:\n");
-    for (uint32_t i = 0; i < 16; i++)
-    {
-      flash_write_sector(i, &msc_disk0[i][0], XMU_SECTOR_SIZE);
-    }
-  }
-  else
-  {
-       printf("Storage already prepped:\n");
-  }
+//  if (flash_target_contents[0] != 0xEB)
+//  {
+//    printf("Init storage:\n");
+//    for (uint32_t i = 0; i < 16; i++)
+//    {
+//      flash_write_sector(i, &msc_disk0[i][0], XMU_SECTOR_SIZE);
+//    }
+//  }
+//  else
+//  {
+//       printf("Storage already prepped:\n");
+//  }
 
   return true;
 }
