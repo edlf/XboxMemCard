@@ -31,7 +31,7 @@ void led_blinking_task(void)
 
 void core1_entry() 
 {
-  printf("Hello core 1\n");
+  //printf("Hello core 1\n");
 
   // displayDriver* display = (displayDriver*)new displaySSD1306();
   // display->rotate(180);
@@ -51,7 +51,7 @@ int main(void)
 {
   stdio_init_all();
  
-  sleep_ms(2000);
+  //sleep_ms(2000);
  
   //multicore_launch_core1(core1_entry);
 
