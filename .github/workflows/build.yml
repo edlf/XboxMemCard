@@ -25,6 +25,12 @@ jobs:
           - project_name: XboxMemCard-rp2350-unformatted
             pico_board: pico2
             config_type: 2
+          - project_name: XboxMemCard-rp2040-sdcard
+            pico_board: pico
+            config_type: 3
+          - project_name: XboxMemCard-rp2350-sdcard
+            pico_board: pico2
+            config_type: 3
          
     steps:
       - uses: actions/checkout@v4
