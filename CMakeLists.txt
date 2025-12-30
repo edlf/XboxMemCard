@@ -25,6 +25,11 @@ endif()
 # ====================================================================================
 set(PICO_BOARD pico CACHE STRING "Board type")
 set(PROJECT_NAME "XboxMemCard" CACHE STRING "Project name")
+set(CONFIG_TYPE 1 CACHE STRING "Config type") #1 = xboxog #2 = unformatted
+
+message(STATUS "PICO_BOARD = ${PICO_BOARD}")
+message(STATUS "PROJECT_NAME = ${PROJECT_NAME}")
+message(STATUS "CONFIG_TYPE = ${CONFIG_TYPE}")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -35,7 +40,10 @@ endif()
 
 project(${PROJECT_NAME} C CXX ASM)
 
-add_compile_definitions(PICO_FLASH_SIZE_BYTES=16777216)
+add_compile_definitions(
+  PICO_FLASH_SIZE_BYTES=16777216
+  CONFIG_TYPE=${CONFIG_TYPE}
+)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()

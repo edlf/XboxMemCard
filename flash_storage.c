@@ -140,7 +140,7 @@ bool flash_init()
 //   INDEX_CONTENTS2
 // };
 
-  
+#if CONFIG_TYPE == 1 // xboxog
 
   if (flash_target_contents[0] != 0x46 || flash_target_contents[1] != 0x41 || flash_target_contents[2] != 0x54 || flash_target_contents[3] != 0x58)
   {
@@ -216,6 +216,12 @@ bool flash_init()
 
     flash_write_sector(0, sector, XMU_SECTOR_SIZE);
   }
+
+#elif CONFIG_TYPE == 2 // unformatted
+
+  // dont need to do anything
+
+#endif
 
   return true;
 }
