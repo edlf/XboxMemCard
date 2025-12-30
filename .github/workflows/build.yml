@@ -13,10 +13,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - project_name: XboxMemCard-rp2040
+          - project_name: XboxMemCard-rp2040-xboxog
             pico_board: pico
-          - project_name: XboxMemCard-rp2350
+            config_type: 1
+          - project_name: XboxMemCard-rp2350-xboxog
             pico_board: pico2
+            config_type: 1
+          - project_name: XboxMemCard-rp2040-unformatted
+            pico_board: pico
+            config_type: 2
+          - project_name: XboxMemCard-rp2350-unformatted
+            pico_board: pico2
+            config_type: 2
          
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +51,7 @@ jobs:
             PICO_SDK_PATH=${{ github.workspace }}/pico-sdk
             PROJECT_NAME=${{ matrix.project_name }}
             PICO_BOARD=${{ matrix.pico_board }}
+            CONFIG_TYPE=${{ matrix.config_type }}
 
       - name: List Files
         run: ls -lh build/**
